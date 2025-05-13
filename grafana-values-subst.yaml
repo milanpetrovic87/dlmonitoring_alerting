@@ -1,0 +1,65 @@
+replicaCount: 1
+
+adminUser: admin
+adminPassword: admin1
+
+persistence:
+  enabled: true
+  storageClassName: "local-path"
+  size: 15Gi
+  accessModes:
+    - ReadWriteOnce
+
+initChownData:
+  enabled: false
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: DS_PROMETHEUS
+        type: prometheus
+        access: proxy
+        url: http://prometheus-server.monitoring.svc.cluster.local
+        isDefault: true
+        uid: Prometheus
+        jsonData:
+          tlsSkipVerify: true
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+dashboardsConfigMaps:
+  default: grafana-dashboards
+
+grafana.ini:
+  unified_alerting:
+    enabled: true
+  auth.ldap:
+    enabled: true
+    config_file: /etc/grafana/ldap.toml
+
+extraVolumeMounts:
+  - name: alert-rules
+    mountPath: /etc/grafana/provisioning/alerting
+  - name: ldap-config
+    mountPath: /etc/grafana/ldap.toml
+    subPath: ldap.toml
+
+extraVolumes:
+  - name: alert-rules
+    configMap:
+      name: grafana-alerts
+  - name: ldap-config
+    configMap:
+      name: grafana-ldap-config

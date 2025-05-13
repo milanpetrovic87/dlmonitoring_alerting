@@ -1,0 +1,111 @@
+# bilo ranije
+# replicas: 3
+# persistence:
+#   enabled: true
+#   storageClassName: "rook-cephfs"
+#   size: 15Gi
+#   annotations:
+#     "helm.sh/resource-policy": "keep"
+#   accessModes:
+#     - ReadWriteMany
+
+# adminUser: admin
+# adminPassword: $PASSWORD
+
+# dashboardProviders:
+#   dashboardproviders.yaml:
+#     apiVersion: 1
+#     providers:
+#       - name: 'default'
+#         orgId: 1
+#         folder: ''
+#         type: file
+#         disableDeletion: false
+#         editable: true
+#         options:
+#           path: /var/lib/grafana/dashboards/default
+
+# dashboardsConfigMaps:
+#   default: "grafana-dashboards"
+
+# datasources:
+#   datasources.yaml:
+#     apiVersion: 1
+#     datasources:
+#     - name: DS_PROMETHEUS
+#       type: prometheus
+#       access: proxy
+#       url: https://prometheus.dl.comapny.rs
+#       isDefault: true
+#       uid: Prometheus
+#       jsonData:
+#         tlsSkipVerify: true
+
+replicas: 3
+persistence:
+  enabled: true
+  storageClassName: "rook-cephfs"
+  size: 15Gi
+  annotations:
+    "helm.sh/resource-policy": "keep"
+  accessModes:
+  - ReadWriteMany
+
+adminUser: admin
+adminPassword: $PASSWORD
+
+initChownData:
+  enabled: false
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+    - name: DS_PROMETHEUS
+      type: prometheus
+      access: proxy
+      url: https://prometheus.dl.comapny.rs
+      isDefault: true
+      uid: Prometheus
+      jsonData:
+        tlsSkipVerify: true
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+    - name: 'default'
+      orgId: 1
+      folder: ''
+      type: file
+      disableDeletion: false
+      editable: true
+      options:
+        path: /var/lib/grafana/dashboards/default
+
+dashboardsConfigMaps:
+  default: grafana-dashboards
+
+grafana.ini:
+  unified_alerting:
+    enabled: true
+    config_file: /etc/grafana/provisioning/alerting/cluster_resources.yaml
+  auth.ldap:
+    enabled: true
+    config_file: /etc/grafana/ldap.toml
+
+extraVolumeMounts:
+- name: alert-rules
+  mountPath: /etc/grafana/provisioning/alerting/
+  subPath: cluster_resources.yaml
+- name: ldap-config
+  mountPath: /etc/grafana/ldap.toml
+  subPath: ldap.toml
+
+extraVolumes:
+- name: alert-rules
+  configMap:
+    name: grafana-alerts
+- name: ldap-config
+  configMap:
+    name: grafana-ldap-config

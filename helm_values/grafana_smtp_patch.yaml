@@ -1,0 +1,18 @@
+spec:
+  template:
+    spec:
+      containers:
+      - name: grafana
+        env:
+        - name: GF_SERVER_ROOT_URL
+          value: https://grafana.dl.comapny.rs
+        - name: GF_SMTP_ENABLED
+          value: "true"
+        - name: GF_SMTP_FROM_ADDRESS
+          value: grafana-prod@comapny.rs
+        - name: GF_SMTP_FROM_NAME
+          value: grafana prod
+        - name: GF_SMTP_HOST
+          value: smtp.provider.rs:25
+        - name: GF_SMTP_STARTTLS_POLICY
+          value: NoStartTLS

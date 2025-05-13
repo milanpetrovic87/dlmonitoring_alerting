@@ -1,0 +1,79 @@
+stages:
+- install_prom_and_grafana
+- use_vault
+
+install_prom_and_grafana:
+  stage: install_prom_and_grafana
+
+  image: hub.docker.company.rs/dl/baseimage:latest
+  id_tokens:
+    VAULT_AUTH_TOKEN:
+      aud: root
+  before_script:
+  - export VAULT_ADDR
+  - export VAULT_SKIP_VERIFY=true
+  - export VAULT_TOKEN
+  - export PASSWORD="$(vault kv get -field=adminPassword data/grafana)"
+  - export KUBECONFIG
+  - helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+  - helm repo add grafana https://grafana.github.io/helm-charts
+  - helm repo add enix https://charts.enix.io
+  - helm repo update
+  - kubectl get ns monitoring || kubectl create ns monitoring
+
+  script:
+
+  # all dashboards need to be patched due to datasource issue with the command below before pushing to repo
+  # find dashboards/ -type f -name '*.json' -exec sed -i -E 's/"datasource":\s*(".*"|\{[\s\S]*?\})/"datasource": null/g' {} +
+  - envsubst < helm_values/prometheus-values.yaml | helm upgrade --install prometheus prometheus-community/prometheus   --namespace monitoring   --values helm_values/prometheus-values.yaml
+
+  - envsubst < helm_values/cert-export-values.yaml | helm upgrade --install x509-certificate-exporter enix/x509-certificate-exporter --values helm_values/cert-export-values.yaml --namespace monitoring
+
+  - helm uninstall grafana --namespace monitoring || true
+  - kubectl delete pvc grafana -n monitoring || true
+  # - kubectl delete cm grafana-dashboards -n monitoring
+  # - kubectl delete cm grafana-alerts -n monitoring
+
+  - export SUBSTITUTED_VALUES=grafana-values-subst.yaml
+  - envsubst < helm_values/grafana-values.yaml > $SUBSTITUTED_VALUES
+
+  - kubectl delete cm grafana-dashboards -n monitoring || true
+  - kubectl create configmap grafana-dashboards --from-file=dashboards/ --namespace monitoring
+
+  # - kubectl delete configmap grafana-alerts -n monitoring || true
+  # - kubectl apply -f grafana-alerts-configmap.yaml -n monitoring
+
+  - kubectl delete configmap grafana-ldap-config -n monitoring || true
+  - kubectl apply -f grafana-ldap-config.yaml -n monitoring
+
+  - kubectl delete configmap cluster-resources-grafana -n monitoring || true
+  - kubectl apply -f cluster-resources.yaml -n monitoring
+
+  - envsubst < helm_values/grafana-values.yaml | helm upgrade --install grafana grafana/grafana --namespace monitoring --values $SUBSTITUTED_VALUES
+
+  # Wait a bit or wait for pod readiness
+  - kubectl rollout status deployment grafana -n monitoring
+
+  # Patch for SMTP
+  - envsubst < helm_values/grafana_smtp_patch.yaml | kubectl patch deployment grafana -n monitoring --patch-file helm_values/grafana_smtp_patch.yaml
+  # - kubectl apply -f ${CI_PROJECT_DIR}/dashboards/grafana-dashboards-configmap.yaml
+
+  #bilo ranije
+
+  # - export SUBSTITUTED_VALUES=grafana-values-subst.yaml
+  # - envsubst < helm_values/grafana-values.yaml > $SUBSTITUTED_VALUES
+
+  # - kubectl delete cm grafana-dashboards -n monitoring && kubectl create configmap grafana-dashboards --from-file=dashboards/ --namespace monitoring
+
+  # #- kubectl create configmap grafana-alerts --from-file=alerting/cluster-resources.yaml --namespace monitoring
+
+  # - envsubst < helm_values/grafana-values.yaml | helm upgrade --install grafana grafana/grafana   --namespace monitoring --values $SUBSTITUTED_VALUES
+
+  # # Wait a bit or wait for pod readiness
+  # - kubectl rollout status deployment grafana -n monitoring
+
+  # # Patch for SMTP
+  # - envsubst < helm_values/grafana_smtp_patch.yaml | kubectl patch deployment grafana -n monitoring --patch-file helm_values/grafana_smtp_patch.yaml
+  # # - kubectl apply -f ${CI_PROJECT_DIR}/dashboards/grafana-dashboards-configmap.yaml
+
+

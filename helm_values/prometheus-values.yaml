@@ -1,0 +1,23 @@
+alertmanager:
+  persistentVolume:
+    enabled: true
+    storageClass: "rook-cephfs"
+    size: 150Gi
+
+server:
+  persistentVolume:
+    enabled: true
+    storageClass: "rook-cephfs"
+    size: 1500Gi
+    retention: "365d"
+
+prometheus-pushgateway:
+  persistentVolume:
+    enabled: true
+    storageClass: "rook-cephfs"
+    size: 150Gi
+
+prometheus-node-exporter:
+  enabled: true
+  hostRootFsMount:
+    enabled: false

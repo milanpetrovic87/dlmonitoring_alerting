@@ -63,3 +63,27 @@ extraVolumes:
   - name: ldap-config
     configMap:
       name: grafana-ldap-config
+
+unifiedAlerting:
+  enabled: true
+  contactPoints:
+    - name: email-default
+      type: email
+      settings:
+        addresses: "alerts@example.com"        
+
+  notificationPolicies:
+    - name: default
+      receiver: email-default
+      group_by: ['alertname']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 30m
+
+smtp:
+  enabled: true
+  host: smtp.mailgun.org:587                  
+  user: postmaster@yourdomain.com             
+  password: your-smtp-password                
+  from_address: alerts@yourdomain.com         
+  skip_verify: false

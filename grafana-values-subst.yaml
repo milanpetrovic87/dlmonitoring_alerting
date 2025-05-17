@@ -42,12 +42,24 @@ dashboardProviders:
 dashboardsConfigMaps:
   default: grafana-dashboards
 
+smtp:
+  existingSecret: grafana-smtp-secret
+  userKey: user
+  passwordKey: password
+
 grafana.ini:
   unified_alerting:
     enabled: true
   auth.ldap:
     enabled: true
     config_file: /etc/grafana/ldap.toml
+
+  smtp:
+    enabled: true
+    host: smtp.mailgun.org:587
+    skip_verify: true
+    from_address: postmaster@yourdomain.com 
+    from_name: Grafana
 
 extraVolumeMounts:
   - name: alert-rules
@@ -79,11 +91,3 @@ unifiedAlerting:
       group_wait: 30s
       group_interval: 5m
       repeat_interval: 30m
-
-smtp:
-  enabled: true
-  host: smtp.mailgun.org:587                  
-  user: postmaster@yourdomain.com             
-  password: your-smtp-password                
-  from_address: alerts@yourdomain.com         
-  skip_verify: false
